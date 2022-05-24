@@ -1,4 +1,4 @@
-const restartBtn = document.getElementById("restartBtn");
+ const restartBtn = document.getElementById("restartBtn");
 //defining global variables
 var rollRectangle;
 var leftRectangle;
@@ -12,6 +12,7 @@ var total = 0;
 var goal;                                               
 var homescreen = true;
 var gameOver = false;
+var wins = 0;
 
 restartBtn.addEventListener("click", ()=> {
   total = 0;
@@ -46,9 +47,23 @@ class Button {
   }
 }
 
+var hoverElem = null;
+function hover(e) {
+    if(hoverElem && !hoverElem.containsPoint(e.getX(), e.getY())) {
+      console.log("hi")
+      hoverElem.setColor(Color.PURPLE);
+    }
+    var hoverElem = getElementAt(e.getX(), e.getY());
+    if(hoverElem.type == "Rectangle") {
+        console.log("hello")
+        hoverElem.setColor(Color.RED);
+    }
+}
+
 function start() {
   displayInstructions()
   mouseClickMethod(startgame);
+  mouseMoveMethod(hover);
 }
 
 function addRectangles() {
@@ -60,24 +75,26 @@ function addRectangles() {
 
     rightButton = new Button((getWidth()/2) - 50 + 150, 350, "Right");
     rightButton.add();
-
 }
 
-function startgame(){
+function startgame(e){
   //defining roll rectangle
   if(homescreen) {
       homescreen = false;
       removeAll();
-    createBackground();
-    addRectangles();
-    //defines and adds goal text
-    goal = new Text("Try to get to 101 without going over!", "16pt Arial");
-    goal.setPosition(0, goal.getHeight());
-    goal.setColor(Color.green)
-    add(goal);
-  
-    //checking for clicks, runs rollbutton function
-    mouseClickMethod(roll);
+      createBackground();
+      addRectangles();
+      //defines and adds goal text
+      goal = new Text("Try to get to 101 without going over!", "16pt Arial");
+      goal.setPosition(0, goal.getHeight());
+      goal.setColor(Color.green)
+      add(goal);
+
+      winStreak = new Text("Wins in a row: " + wins);
+      winStreak.setPosition((getWidth() - winStreak.getWidth()) / 2, getHeight());
+      add(winStreak)
+  } else {
+      roll(e);
   }
 }
 
@@ -93,8 +110,6 @@ function rollDice() {
     remove(dieOneLabel);
   if(dieTwoLabel)
     remove(dieTwoLabel)
-  if(totaltext)
-    remove(totaltext);
   
   //This is saying to randomize a number for the 1st "die" between 1 and 6 and it is also positioning it.
   dieOne = Randomizer.nextInt(1, 6); 
@@ -103,32 +118,39 @@ function rollDice() {
   dieTwo = Randomizer.nextInt(1, 6);
   dieTwoLabel = dieLabel(dieTwo, 50);
 
+  add(dieTwoLabel);
+  add(dieOneLabel);
+
 }
 
 function updateTotal(left, right) {
     //This is adding the last most recent roll to the last roll and is setting the position of the number on the screen.
-  if(left){
-    total += dieOne;
-  } else if (right) {
-    total += dieTwo;
+  if(totaltext)
+    remove(totaltext);
+  if(dieOneLabel == null || dieTwoLabel == null) {
+    totaltext = new Text(0, "16pt Arial");
   } else {
-    total += dieOne + dieTwo;
+    if(left){
+      total += dieOne;
+    } else if (right) {
+      total += dieTwo;
+    } else {
+      total += dieOne + dieTwo;
+    }
+     totaltext = new Text(total, "16pt Arial");
   }
-  totaltext = new Text(total, "16pt Arial");
   totaltext.setPosition(
     getWidth() - totaltext.getWidth(),
     totaltext.getHeight()
   );
-    
   totaltext.setColor(Color.red);
-  add(dieOneLabel);
-  add(dieTwoLabel);
   add(totaltext);
 }
 
-function game(left, right){
+function myGame(left, right){
   updateTotal(left, right);
   rollDice();
+  
   //if you reach over 101 the game will end and new text displaying you lost will show up.
   if((total > 101) && (!gameOver)){
     remove(totaltext);
@@ -140,6 +162,7 @@ function game(left, right){
     lose.setPosition(getWidth()/2 - lose.getWidth() / 2, getHeight()/2);
     lose.setColor(Color.red);
     add(lose);
+    wins = 0;
   }
   if(total == 101) {
     remove(totaltext);
@@ -150,24 +173,23 @@ function game(left, right){
     var win = new Text("You Win!", "16pt Arial");
     win.setPosition(getWidth()/2 - win.getWidth()/2, getHeight()/2);
     add(win);
+    wins++;
   }
 }
 
 function roll(e){
   var x = e.getX();
   var y = e.getY();
-  console.log(x);
-  console.log(y);
   if(rollButton.rect.containsPoint(x,y) && !gameOver){
-    game(false, false);
+    myGame(false, false);
     var mySong = new Audio("https://codehs.com/uploads/d098e4e491aa7c4b375cd6302613fb66")
     mySong.play();
   } else if(leftButton.rect.containsPoint(x, y) && !gameOver) {
-    game(true, false);
+    myGame(true, false);
     var mySong = new Audio("https://codehs.com/uploads/d098e4e491aa7c4b375cd6302613fb66")
     mySong.play();
   } else if(rightButton.rect.containsPoint(x, y) && !gameOver) {
-    game(false, true);
+    myGame(false, true);
     var mySong = new Audio("https://codehs.com/uploads/d098e4e491aa7c4b375cd6302613fb66")
     mySong.play();
   }
